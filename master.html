@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VCS — Monthly Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+
+  /* ── THEME VARIABLES ────────────────────────────────────────────────────────
+     Light mode is the default. The [data-theme="dark"] selector overrides all
+     CSS custom properties when the user switches to dark mode.
+     All components reference only these variables — never hard-coded colours.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  :root,
+  [data-theme="light"] {
+    --bg:        #f4f5f7;
+    --surface:   #ffffff;
+    --panel:     #f0f1f4;
+    --border:    #e0e3ea;
+    --border2:   #c9cdd8;
+    --accent:    #e8a020;
+    --accent2:   #e8a020;
+    --green:     #1f9e68;
+    --red:       #d94040;
+    --text:      #1a1d26;
+    --muted:     #6b7280;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+
+    /* Toggle button appearance in light mode */
+    --toggle-bg:     #e0e3ea;
+    --toggle-knob:   #ffffff;
+    --toggle-icon:   '☀';
+  }
+
+  [data-theme="dark"] {
+    --bg:        #0d0f12;
+    --surface:   #13161b;
+    --panel:     #1a1e26;
+    --border:    #252932;
+    --border2:   #2f3542;
+    --accent:    #e8a020;
+    --accent2:   #e8a020;
+    --green:     #3ecf8e;
+    --red:       #f06060;
+    --text:      #d4d8e2;
+    --muted:     #6b7280;
+
+    /* Toggle button appearance in dark mode */
+    --toggle-bg:     #2f3542;
+    --toggle-knob:   #e8a020;
+    --toggle-icon:   '☾';
+  }
+
+  /* ── RESET & BASE ───────────────────────────────────────────────────────────
+     Global box-sizing reset, typography baseline, and flex column body layout.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /* Smooth colour transition when switching themes */
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────────────────────────
+     Sticky top navigation bar containing the logo, app title, theme toggle,
+     and the PDF Report Assistant link.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 12px;
+    color: #fff;
+    letter-spacing: -0.5px;
+    border-radius: 100%;
+    transition: background 0.2s ease;
+  }
+
+  /* In light mode the logo text contrasts best against the amber background */
+  [data-theme="light"] .logo-mark { color: #ffffff; }
+  [data-theme="dark"]  .logo-mark { color: #000000; }
+
+  .app-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.03em;
+  }
+
+  .app-title span { color: var(--muted); font-weight: 400; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── THEME TOGGLE ───────────────────────────────────────────────────────────
+     Pill-shaped toggle switch that swaps between light and dark themes.
+     The icon label updates via the CSS --toggle-icon variable.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .theme-toggle-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .theme-toggle-track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--toggle-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border2);
+    transition: background 0.2s ease, border-color 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .theme-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--toggle-knob);
+    border-radius: 50%;
+    transition: transform 0.2s ease, background 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+
+  /* Slide the knob to the right when dark mode is active */
+  [data-theme="dark"] .theme-toggle-knob {
+    transform: translateX(16px);
+  }
+
+  .btn-assistant {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: border-color 0.15s, color 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-assistant:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* ── TAB BAR ────────────────────────────────────────────────────────────────
+     Fixed bottom navigation strip. Each loaded month gets a tab, plus a
+     special "Reporting Data" tab pinned to the right.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .tab-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) var(--surface);
+    flex-shrink: 0;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 52px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .tab-bar::-webkit-scrollbar { height: 3px; }
+  .tab-bar::-webkit-scrollbar-track { background: var(--surface); }
+  .tab-bar::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 0 16px;
+    height: 52px;
+    line-height: 50px;
+    cursor: pointer;
+    border-top: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.04em;
+    background: none;
+    text-decoration: none;
+    display: inline-block;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--accent);
+    border-top-color: var(--accent);
+  }
+
+  .tab.reporting {
+    margin-left: auto;
+    color: var(--accent2);
+  }
+
+  .tab.reporting.active {
+    color: var(--accent2);
+    border-top-color: var(--accent2);
+  }
+
+  /* ── MAIN CONTENT AREA ──────────────────────────────────────────────────────
+     Scrollable canvas below the header. Bottom padding ensures content clears
+     the fixed tab bar.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .main {
+    flex: 1;
+    padding: 24px;
+    padding-bottom: 68px;
+    overflow: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── EMPTY / LOADING STATES ─────────────────────────────────────────────────
+     Centred placeholder displayed before any data files have been loaded, and
+     the inline loading message shown in the tab bar during initial discovery.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .state-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .state-empty .icon { font-size: 32px; opacity: 0.3; }
+  .state-empty p { line-height: 1.8; }
+
+  .state-empty code {
+    background: var(--panel);
+    padding: 2px 6px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+  }
+
+  /* ── MONTH VIEW ─────────────────────────────────────────────────────────────
+     Each month's content container. Hidden by default; the .active class is
+     toggled by switchTab() to reveal the selected month.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .month-view { display: none; position: relative; }
+  .month-view.active { display: block; }
+
+  /* ── KPI STRIP ──────────────────────────────────────────────────────────────
+     Horizontal row of key performance indicators rendered at the top of each
+     monthly view. Uses a 1-pixel gap on a border-coloured background to create
+     a "divided tile" appearance without individual borders on each card.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.2s ease;
+  }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .kpi-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .kpi-value.accent { color: var(--accent); }
+  .kpi-value.green  { color: var(--green);  }
+  .kpi-value.blue   { color: var(--accent2); }
+
+  .kpi-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── TWO-COLUMN LAYOUT ──────────────────────────────────────────────────────
+     Responsive two-column grid used for the charts row in each monthly view.
+     Collapses to a single column on viewports narrower than 900px.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* ── PANEL ──────────────────────────────────────────────────────────────────
+     Reusable card container with a header bar and body padding.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .panel-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--panel);
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+  }
+
+  .panel-body { padding: 16px; }
+
+  /* ── CHART CONTAINER ────────────────────────────────────────────────────────
+     Fixed-height wrapper required by Chart.js to honour maintainAspectRatio.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+
+  /* ── DATA TABLE ─────────────────────────────────────────────────────────────
+     Full-width incident table with sortable column headers, state badges,
+     and row hover highlighting. Wraps in a scrollable container for overflow.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .data-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 16px;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .data-table thead tr {
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .data-table th {
+    padding: 8px 12px;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 10px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .data-table th:hover { color: var(--text); }
+
+  /* Sort direction indicators appended via ::after pseudo-element */
+  .data-table th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
+  .data-table th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  .data-table tbody tr:hover { background: var(--panel); }
+
+  .data-table td {
+    padding: 8px 12px;
+    color: var(--text);
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* First column (incident number) rendered in accent colour */
+  .data-table td:first-child { color: var(--accent2); }
+
+  /* ── STATE BADGES ───────────────────────────────────────────────────────────
+     Colour-coded pill labels for incident status values. Background colours
+     use alpha-channel tints so they remain legible in both light and dark modes.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+
+  .badge-resolved { background: rgba(31,158,104,0.12); color: var(--green); }
+  .badge-closed   { background: rgba(196,125,10,0.12); color: var(--accent2); }
+  .badge-open     { background: rgba(196,125,10,0.12); color: var(--accent); }
+  .badge-hold     { background: rgba(217,64,64,0.12);  color: var(--red); }
+
+  [data-theme="dark"] .badge-resolved { background: rgba(62,207,142,0.12);  color: var(--green); }
+  [data-theme="dark"] .badge-closed   { background: rgba(232,160,32,0.12);  color: var(--accent2); }
+  [data-theme="dark"] .badge-open     { background: rgba(232,160,32,0.12);  color: var(--accent); }
+  [data-theme="dark"] .badge-hold     { background: rgba(240,96,96,0.12);   color: var(--red); }
+
+  /* ── TOOLBAR ────────────────────────────────────────────────────────────────
+     Controls strip above the incident table: search input, status filter,
+     column-visibility toggle, and a row-count summary.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    width: 260px;
+    outline: none;
+    transition: border-color 0.15s, background 0.2s ease, color 0.2s ease;
+  }
+
+  .search-input:focus { border-color: var(--border2); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s, background 0.2s ease, color 0.2s ease;
+  }
+
+  .filter-select:focus { border-color: var(--border2); }
+
+  .toolbar-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  /* ── PAGINATION ─────────────────────────────────────────────────────────────
+     Page-number buttons rendered beneath the incident table when the filtered
+     result set exceeds PAGE_SIZE rows.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  .page-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.1s, color 0.1s;
+  }
+
+  .page-btn:hover, .page-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── REPORTING VIEW ─────────────────────────────────────────────────────────
+     Aggregate cross-month analytics panel. Hidden until the "Reporting Data"
+     tab is selected; shares the same reporting-grid layout as two-col.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .reporting-view { display: none; }
+  .reporting-view.active { display: block; }
+
+  .reporting-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .reporting-grid { grid-template-columns: 1fr; }
+  }
+
+  .chart-wrap-tall { height: 280px; position: relative; }
+
+  /* ── RESOLUTION BARS ────────────────────────────────────────────────────────
+     Horizontal bar chart built in plain HTML/CSS (no canvas) showing the
+     top-10 resolution codes for the selected month.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .res-bars { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+
+  .res-bar-row { display: flex; align-items: center; gap: 10px; }
+
+  .res-bar-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    width: 140px;
+    flex-shrink: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .res-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .res-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+  }
+
+  .res-bar-val {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── YTD SUMMARY TABLE ──────────────────────────────────────────────────────
+     Year-to-date summary rendered inside the Reporting Data panel. The final
+     "TOTAL" row is highlighted with the accent colour and bold weight.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .ytd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .ytd-table th {
+    padding: 6px 10px;
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ytd-table th:first-child { text-align: left; }
+
+  .ytd-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+    color: var(--text);
+  }
+
+  .ytd-table td:first-child { text-align: left; color: var(--muted); }
+
+  .ytd-table tr:last-child td {
+    color: var(--accent);
+    font-weight: 600;
+    border-bottom: none;
+  }
+
+  /* ── SCROLLBARS ─────────────────────────────────────────────────────────────
+     Minimal webkit scrollbar styling consistent with the active theme.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── LOADING OVERLAY ────────────────────────────────────────────────────────
+     Full-screen semi-transparent overlay with an animated progress bar shown
+     briefly when switching between month tabs.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(244,245,247,0.85);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    transition: background 0.2s ease;
+  }
+
+  [data-theme="dark"] .loading-overlay {
+    background: rgba(13,15,18,0.85);
+  }
+
+  .loading-bar {
+    width: 160px;
+    height: 3px;
+    background: var(--panel);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .loading-bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 40%;
+    background: var(--accent);
+    animation: loadingSlide 0.7s infinite linear;
+  }
+
+  @keyframes loadingSlide {
+    from { transform: translateX(-120%); }
+    to   { transform: translateX(260%); }
+  }
+
+  /* ── COLUMN VISIBILITY TOGGLE ───────────────────────────────────────────────
+     Dropdown menu allowing users to show or hide individual table columns.
+     Positioned relative to its trigger button and closed on outside clicks.
+  ──────────────────────────────────────────────────────────────────────────── */
+
+  .col-toggle-wrap { position: relative; }
+
+  .col-toggle-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: border-color 0.15s, color 0.15s, background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .col-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  .col-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  .col-toggle-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    z-index: 200;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    transition: background 0.2s ease;
+  }
+
+  [data-theme="dark"] .col-toggle-menu {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  .col-toggle-menu.open { display: block; }
+
+  .col-toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    transition: background 0.1s;
+    user-select: none;
+  }
+
+  .col-toggle-item:hover { background: var(--panel); color: var(--text); }
+
+  .col-toggle-item input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .col-toggle-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────────
+     Top navigation bar: branding on the left, theme toggle and assistant link
+     on the right.
+──────────────────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="header-left">
+    <div class="logo-mark">VCS</div>
+    <span class="app-title">ECU<span> / Perth City Campus </span></span>
+  </div>
+  <div class="header-right">
+    <!-- Theme toggle: clicking swaps the data-theme attribute on <html> -->
+    <div class="theme-toggle" id="themeToggle" title="Toggle light / dark mode" role="button" aria-label="Toggle colour theme" tabindex="0">
+      <span class="theme-toggle-label" id="themeLabel">Light</span>
+      <div class="theme-toggle-track">
+        <div class="theme-toggle-knob"></div>
+      </div>
+    </div>
+    <a href="assistant.html" class="btn-assistant">PDF Report Assistant</a>
+  </div>
+</header>
+
+<!-- ── TAB BAR ────────────────────────────────────────────────────────────────
+     Fixed bottom strip. Month tabs are injected dynamically by buildUI().
+     The loading message is shown while data files are being discovered.
+──────────────────────────────────────────────────────────────────────────── -->
+<div class="tab-bar" id="tabBar">
+  <div style="display:flex;align-items:center;padding:0 8px;" id="loadingMsg">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--muted);">Loading data files…</span>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ───────────────────────────────────────────────────────────
+     Month views and the reporting view are injected here by buildUI().
+     The empty state is shown before any data has been loaded.
+──────────────────────────────────────────────────────────────────────────── -->
+<div class="main" id="mainContent">
+  <div class="state-empty" id="emptyState">
+    <div class="icon">⬡</div>
+    <p>No data loaded yet.<br>
+    Drop monthly JSON files into the <code>data/</code> folder<br>
+    and refresh — they'll appear as tabs below.</p>
+    <p style="margin-top:8px;">Expected format: <code>YYYY-MM.json</code></p>
+  </div>
+</div>
+
+<script>
+// ── CONFIGURATION ─────────────────────────────────────────────────────────────
+// DATA_DIR: path to the folder containing monthly JSON data files.
+// PAGE_SIZE: number of incident rows displayed per table page.
+const DATA_DIR  = './data/';
+const PAGE_SIZE = 50;
+
+// ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
+// Each entry defines a table column's data key, header label, default width,
+// and whether it is visible by default. Users can toggle visibility via the
+// Columns menu in the toolbar.
+const ALL_COLS = [
+  { key: 'number',                 label: 'Number',            width: '9%',  visible: true  },
+  { key: 'priority',               label: 'Priority',          width: '5%',  visible: true  },
+  { key: 'state',                  label: 'Status',            width: '9%',  visible: true  },
+  { key: 'assigned_to',            label: 'Assigned To',       width: '9%',  visible: true  },
+  { key: 'short_description',      label: 'Description',       width: '28%', visible: true  },
+  { key: 'task_type',              label: 'Task Type',         width: '8%',  visible: true  },
+  { key: 'location',               label: 'Location',          width: '8%',  visible: true  },
+  { key: 'parent',                 label: 'Parent',            width: '7%',  visible: true  },
+  { key: 'resolved',               label: 'Resolved',          width: '9%',  visible: true  },
+  { key: 'duration_open_to_close', label: 'Duration',          width: '8%',  visible: true  },
+  { key: 'work_notes',             label: 'Work Notes',        width: '12%', visible: false },
+  { key: 'technical_service',      label: 'Technical Service', width: '10%', visible: false },
+  { key: 'service_level',          label: 'Service Level',     width: '9%',  visible: false },
+  { key: 'updated',                label: 'Updated',           width: '9%',  visible: false },
+  { key: 'updated_by',             label: 'Updated By',        width: '9%',  visible: false },
+  { key: 'configuration_item',     label: 'Config Item',       width: '10%', visible: false },
+];
+
+// ── APPLICATION STATE ─────────────────────────────────────────────────────────
+// Central mutable state object. All render functions read from this object so
+// that tab switches, searches, sorting, and pagination remain consistent.
+const state = {
+  months:      {},    // Keyed by "MM_YYYY"; each value is a normalised incident array
+  activeTab:   null,  // Currently selected tab key
+  sortCol:     null,  // Column key currently sorted on (null = unsorted)
+  sortDir:     'asc', // Sort direction: 'asc' | 'desc'
+  search:      '',    // Active search query string
+  filterState: 'all', // Active status filter value
+  page:        1,     // Current pagination page
+  charts:      {}     // Chart.js instance registry keyed by canvas element id
+};
+
+// ── CHART.JS GLOBAL DEFAULTS ──────────────────────────────────────────────────
+// Applied once at startup. Individual charts override these where necessary.
+Chart.defaults.color        = '#6b7280';
+Chart.defaults.borderColor  = '#e0e3ea';
+Chart.defaults.font.family  = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size    = 10;
+
+// ── THEME MANAGEMENT ──────────────────────────────────────────────────────────
+// Reads / writes data-theme="light"|"dark" on the <html> element.
+// Persists the user's preference to localStorage so it survives page reloads.
+// Chart.js grid colour is updated live when the theme changes.
+
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') || 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+
+  // Update the toggle label
+  const label = document.getElementById('themeLabel');
+  if (label) label.textContent = theme === 'dark' ? 'Dark' : 'Light';
+
+  // Update Chart.js global border colour to match the new theme
+  Chart.defaults.borderColor = theme === 'dark' ? '#252932' : '#e0e3ea';
+
+  // Persist preference
+  try { localStorage.setItem('vcs-theme', theme); } catch(_) {}
+}
+
+function toggleTheme() {
+  applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+}
+
+// Wire up the toggle button (click + keyboard Enter/Space)
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('themeToggle').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTheme(); }
+});
+
+// Restore saved preference on load (default is light)
+(function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('vcs-theme') || 'light'; } catch(_) {}
+  applyTheme(saved);
+})();
+
+// ── DATE & VALUE FORMATTERS ───────────────────────────────────────────────────
+// Shared helper functions used across KPI, table, and chart rendering.
+
+/** Format a date value as DD Mon YY (Australian short date). */
+function fmt(date) {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d)) return date;
+  return d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: '2-digit' });
+}
+
+/** Convert a millisecond duration to a human-readable hours or days string. */
+function fmtHours(ms) {
+  if (!ms || ms < 0) return '—';
+  const h = ms / 3600000;
+  if (h < 24) return h.toFixed(1) + 'h';
+  return (h / 24).toFixed(1) + 'd';
+}
+
+/** Return an HTML badge element appropriate for the given state string. */
+function stateBadge(s) {
+  if (!s) return '<span class="badge badge-open">UNKNOWN</span>';
+  const sl = s.toLowerCase();
+  if (sl.includes('resolved')) {
+    const label = sl.includes('confirmed') ? 'RESOLVED ✓' : s.toUpperCase();
+    return `<span class="badge badge-resolved">${label}</span>`;
+  }
+  if (sl.includes('closed'))  return `<span class="badge badge-closed">CLOSED</span>`;
+  if (sl.includes('hold'))    return `<span class="badge badge-hold">ON HOLD</span>`;
+  if (sl.includes('cancel'))  return `<span class="badge badge-hold">CANCELLED</span>`;
+  return `<span class="badge badge-open">${s.toUpperCase()}</span>`;
+}
+
+/** Destroy a Chart.js instance by canvas id to prevent memory leaks. */
+function destroyChart(id) {
+  if (state.charts[id]) { state.charts[id].destroy(); delete state.charts[id]; }
+}
+
+/** Convert a "MM_YYYY" tab key to a human-readable month + year label. */
+function monthLabel(key) {
+  const [m, y] = key.split('_');
+  return new Date(y, m - 1).toLocaleDateString('en-AU', { month: 'short', year: 'numeric' });
+}
+
+/** Convert a tab key to a Date object for sorting purposes. */
+function keyToDate(key) {
+  const [m, y] = key.split('_');
+  return new Date(y, m - 1);
+}
+
+/**
+ * Calculate the average resolution time in hours for all resolved or closed
+ * incidents in the supplied array.
+ */
+function calcAvgResolveHours(incidents) {
+  const resolved = incidents.filter(i => {
+    const s = (i.state || i.State || '').toLowerCase();
+    return s.includes('resolved') || s.includes('closed');
+  });
+  let total = 0, count = 0;
+  resolved.forEach(i => {
+    const created  = new Date(i.created  || i.Created);
+    const closed   = new Date(i.resolved || i.Resolved || i.updated || i.Updated);
+    if (!isNaN(created) && !isNaN(closed) && closed > created) {
+      total += (closed - created);
+      count++;
+    }
+  });
+  return count ? total / count / 3600000 : 0;
+}
+
+// ── FIELD NORMALISATION ───────────────────────────────────────────────────────
+// ServiceNow exports may use inconsistent casing (e.g. "State" vs "state").
+// This function lowercases all keys and replaces spaces with underscores so
+// the rest of the application can reference fields consistently.
+function normalise(inc) {
+  const n = {};
+  Object.keys(inc).forEach(k => { n[k.toLowerCase().replace(/ /g, '_')] = inc[k]; });
+  return n;
+}
+
+// ── DATA LOADING ──────────────────────────────────────────────────────────────
+// Attempts to load a manifest.json index file from the data directory. If none
+// exists, it probes the last three years of monthly filenames in parallel and
+// loads whichever files respond with HTTP 200. Loaded data is stored in
+// state.months keyed by "MM_YYYY".
+async function discoverAndLoad() {
+  let keys = [];
+
+  // Try fetching an optional manifest file that lists available data files
+  try {
+    const r = await fetch(DATA_DIR + 'manifest.json');
+    if (r.ok) {
+      const m = await r.json();
+      keys = m.files || [];
+    }
+  } catch(_) {}
+
+  // If no manifest, probe the last three years of possible monthly filenames
+  if (!keys.length) {
+    const probes = [];
+    const now    = new Date();
+    for (let y = now.getFullYear() - 2; y <= now.getFullYear(); y++) {
+      for (let m = 1; m <= 12; m++) {
+        probes.push(`${String(m).padStart(2, '0')}_${y}.json`);
+      }
+    }
+    const results = await Promise.allSettled(
+      probes.map(f => fetch(DATA_DIR + f).then(r => r.ok ? f : null))
+    );
+    keys = results
+      .filter(r => r.status === 'fulfilled' && r.value)
+      .map(r => r.value);
+  }
+
+  if (!keys.length) {
+    document.getElementById('loadingMsg').style.display = 'none';
+    return;
+  }
+
+  // Fetch and parse all discovered data files in parallel
+  await Promise.all(keys.map(async filename => {
+    try {
+      const r   = await fetch(DATA_DIR + filename);
+      const obj = await r.json();
+      const key = filename.replace('.json', '');
+      const raw = obj.incidents || obj.Incidents || obj;
+      state.months[key] = (Array.isArray(raw) ? raw : []).map(normalise);
+    } catch(e) {
+      console.warn('Failed to load', filename, e);
+    }
+  }));
+
+  buildUI();
+}
+
+// ── BUILD UI ──────────────────────────────────────────────────────────────────
+// Called once all data files have loaded. Creates tabs and view containers for
+// each month (sorted chronologically), appends the Reporting Data tab, then
+// activates the most recent month.
+function buildUI() {
+  const keys = Object.keys(state.months).sort((a, b) => keyToDate(a) - keyToDate(b));
+  if (!keys.length) return;
+
+  document.getElementById('emptyState').style.display  = 'none';
+  document.getElementById('loadingMsg').style.display  = 'none';
+
+  const tabBar = document.getElementById('tabBar');
+  tabBar.innerHTML = '';
+  const main = document.getElementById('mainContent');
+  main.innerHTML   = '';
+
+  // Create a tab and view container for each month
+  keys.forEach(key => {
+    const tab = document.createElement('a');
+    tab.className   = 'tab';
+    tab.href        = '#';
+    tab.dataset.key = key;
+    tab.textContent = monthLabel(key);
+    tab.addEventListener('click', (e) => { e.preventDefault(); switchTab(key); });
+    tabBar.appendChild(tab);
+
+    const view = document.createElement('div');
+    view.className = 'month-view';
+    view.id        = 'view-' + key;
+    view.innerHTML = buildMonthHTML(key);
+    main.appendChild(view);
+  });
+
+  // Append the aggregate Reporting Data tab
+  const repTab = document.createElement('a');
+  repTab.className   = 'tab reporting';
+  repTab.href        = '#';
+  repTab.dataset.key = '__reporting';
+  repTab.textContent = '◈ Reporting Data';
+  repTab.addEventListener('click', (e) => { e.preventDefault(); switchTab('__reporting'); });
+  tabBar.appendChild(repTab);
+
+  const repView = document.createElement('div');
+  repView.className = 'reporting-view';
+  repView.id        = 'view-__reporting';
+  main.appendChild(repView);
+
+  // Activate the most recent month without the loading delay
+  switchTab(keys[keys.length - 1], true);
+}
+
+// ── MONTH HTML TEMPLATE ───────────────────────────────────────────────────────
+// Returns the inner HTML string for a single month view. Placeholder elements
+// are populated by renderMonth() after the view is inserted into the DOM.
+function buildMonthHTML(key) {
+  return `
+    <div id="kpi-${key}" class="kpi-strip"></div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Incidents by Status</span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap"><canvas id="chart-state-${key}"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Resolution Breakdown</span>
+        </div>
+        <div class="panel-body" id="resbars-${key}"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header">
+        <span class="panel-title">Incidents</span>
+        <span class="panel-badge" id="badge-${key}"></span>
+      </div>
+      <div class="panel-body">
+        <div class="toolbar">
+          <input class="search-input" placeholder="Search"
+            oninput="onSearch(this.value,'${key}')" id="search-${key}">
+          <select class="filter-select" onchange="onFilter(this.value,'${key}')" id="filter-${key}">
+            <option value="all">All</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+            <option value="open">Open / Active</option>
+            <option value="hold">On Hold</option>
+          </select>
+          <div class="col-toggle-wrap" id="col-toggle-wrap-${key}">
+            <button class="col-toggle-btn" onclick="toggleColMenu('${key}')">⊞ Columns</button>
+            <div class="col-toggle-menu" id="col-menu-${key}"></div>
+          </div>
+          <span class="toolbar-count" id="count-${key}"></span>
+        </div>
+        <div class="data-table-wrap" id="table-${key}"></div>
+        <div class="pagination" id="pages-${key}"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+// Updates active tab highlight, toggles view visibility, and triggers a render.
+// A brief animated loading overlay is shown when switching between tabs to
+// communicate that data is being prepared (skipped on the initial page load).
+
+function showSkeleton() {
+  removeSkeleton();
+  const overlay      = document.createElement('div');
+  overlay.className  = 'loading-overlay';
+  overlay.id         = 'loading-overlay';
+  overlay.innerHTML  = '<div class="loading-bar"></div>';
+  document.body.appendChild(overlay);
+}
+
+function removeSkeleton() {
+  const el = document.getElementById('loading-overlay');
+  if (el) el.remove();
+}
+
+function switchTab(key, isInitial = false) {
+  state.activeTab   = key;
+  state.search      = '';
+  state.filterState = 'all';
+  state.page        = 1;
+
+  // Update tab active state
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.key === key);
+  });
+
+  // Show only the selected view
+  document.querySelectorAll('.month-view, .reporting-view').forEach(v => {
+    v.classList.remove('active');
+  });
+  const view = document.getElementById('view-' + key);
+  if (view) view.classList.add('active');
+
+  // On the initial load skip the skeleton delay for a snappier first render
+  if (isInitial) {
+    if (key === '__reporting') renderReporting();
+    else renderMonth(key);
+    return;
+  }
+
+  showSkeleton();
+  const delay = 300 + Math.random() * 200; // 300–500 ms
+  setTimeout(() => {
+    if (state.activeTab !== key) return; // Tab changed again before delay elapsed
+    if (key === '__reporting') renderReporting();
+    else renderMonth(key);
+    removeSkeleton();
+  }, delay);
+}
+
+// ── MONTH VIEW RENDER ─────────────────────────────────────────────────────────
+// Orchestrates all sub-renders for a single month: KPI strip, status chart,
+// resolution bars, and the incident table.
+function renderMonth(key) {
+  const incidents = state.months[key] || [];
+  renderKPIs(key, incidents);
+  renderStateChart(key, incidents);
+  renderResBars(key, incidents);
+  renderTable(key);
+}
+
+/** Populate the KPI strip with summary counts and average resolution time. */
+function renderKPIs(key, incidents) {
+  const total    = incidents.length;
+  const resolved = incidents.filter(i => (i.state || '').toLowerCase().includes('resolved')).length;
+  const closed   = incidents.filter(i => (i.state || '').toLowerCase().includes('closed')).length;
+  const open     = total - resolved - closed;
+  const avgH     = calcAvgResolveHours(incidents);
+
+  document.getElementById('kpi-' + key).innerHTML = `
+    <div class="kpi"><div class="kpi-label">Total Incidents</div>
+      <div class="kpi-value accent">${total}</div></div>
+    <div class="kpi"><div class="kpi-label">Resolved</div>
+      <div class="kpi-value green">${resolved}</div></div>
+    <div class="kpi"><div class="kpi-label">Closed</div>
+      <div class="kpi-value blue">${closed}</div></div>
+    <div class="kpi"><div class="kpi-label">Open / Active</div>
+      <div class="kpi-value">${open}</div></div>
+    <div class="kpi"><div class="kpi-label">Avg Resolve Time</div>
+      <div class="kpi-value">${avgH ? avgH.toFixed(1) + 'h' : '—'}</div>
+      <div class="kpi-sub">resolved tickets only</div></div>
+  `;
+}
+
+/** Render the doughnut chart showing incident counts grouped by status. */
+function renderStateChart(key, incidents) {
+  const id = 'chart-state-' + key;
+  destroyChart(id);
+
+  const counts = {};
+  incidents.forEach(i => {
+    const s = i.state || 'Unknown';
+    counts[s] = (counts[s] || 0) + 1;
+  });
+
+  const labels = Object.keys(counts);
+  const data   = labels.map(l => counts[l]);
+  const colours = ['#3ecf8e', '#e8a020', '#f06060', '#f06060', '#a78bfa', '#6b7280'];
+
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+
+  state.charts[id] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colours.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: getComputedStyle(document.documentElement)
+          .getPropertyValue('--surface').trim() || '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 10, padding: 14, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Render a CSS bar chart of the top-10 resolution codes for the month.
+ * Falls back to a "no data" message if the resolution_code field is absent.
+ */
+function renderResBars(key, incidents) {
+  const el = document.getElementById('resbars-' + key);
+  if (!el) return;
+
+  const counts = {};
+  incidents.forEach(i => {
+    const r = i.resolution_code || i.resolutioncode || '—';
+    if (r && r !== '—' && r !== 'null') counts[r] = (counts[r] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const max    = sorted[0]?.[1] || 1;
+
+  if (!sorted.length) {
+    el.innerHTML = '<p style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0;">No resolution code data</p>';
+    return;
+  }
+
+  el.innerHTML = `<div class="res-bars">${
+    sorted.map(([label, val]) => `
+      <div class="res-bar-row">
+        <div class="res-bar-label" title="${label}">${label}</div>
+        <div class="res-bar-track">
+          <div class="res-bar-fill" style="width:${(val / max * 100).toFixed(1)}%"></div>
+        </div>
+        <div class="res-bar-val">${val}</div>
+      </div>`).join('')
+  }</div>`;
+}
+
+// ── TABLE RENDERING ───────────────────────────────────────────────────────────
+// Builds the incident data table for the active tab, applying current search,
+// status filter, sort, and pagination from the global state object.
+
+/**
+ * Return a filtered and sorted copy of the incidents array for the given tab
+ * key, applying state.search, state.filterState, and state.sortCol/Dir.
+ */
+function getFilteredIncidents(key) {
+  let rows = state.months[key] || [];
+  const q  = state.search.toLowerCase();
+  const fs = state.filterState;
+
+  // Text search across number, description, and assignee fields
+  if (q) {
+    rows = rows.filter(i =>
+      (i.number || '').toLowerCase().includes(q) ||
+      (i.short_description || '').toLowerCase().includes(q) ||
+      (i.assigned_to || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Status filter
+  if (fs !== 'all') {
+    rows = rows.filter(i => {
+      const s = (i.state || '').toLowerCase();
+      if (fs === 'resolved') return s.includes('resolved');
+      if (fs === 'closed')   return s.includes('closed');
+      if (fs === 'open')     return !s.includes('resolved') && !s.includes('closed') && !s.includes('hold');
+      if (fs === 'hold')     return s.includes('hold') || s.includes('cancel');
+      return true;
+    });
+  }
+
+  // Column sort
+  if (state.sortCol) {
+    rows = [...rows].sort((a, b) => {
+      const av = a[state.sortCol] || '';
+      const bv = b[state.sortCol] || '';
+      return state.sortDir === 'asc'
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+  }
+
+  return rows;
+}
+
+/** Re-render the incident table, badge, row count, and pagination controls. */
+function renderTable(key) {
+  const filtered = getFilteredIncidents(key);
+  const total    = filtered.length;
+  const pages    = Math.ceil(total / PAGE_SIZE);
+  const p        = Math.min(state.page, pages || 1);
+  const slice    = filtered.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE);
+
+  const cols = ALL_COLS.filter(c => c.visible);
+
+  // Build column headers with sort indicators
+  const thHTML = cols.map(c => {
+    let cls = '';
+    if (state.sortCol === c.key) cls = state.sortDir === 'asc' ? 'sort-asc' : 'sort-desc';
+    return `<th class="${cls}" style="width:${c.width}" onclick="onSort('${c.key}','${key}')">${c.label}</th>`;
+  }).join('');
+
+  // Build table rows for the current page slice
+  const trHTML = slice.map(i => {
+    const resolvedField = i.resolved || i.closed || '';
+    const tds = cols.map(c => {
+      let val;
+      if (c.key === 'state')   val = stateBadge(i.state);
+      else if (c.key === 'resolved') val = fmt(resolvedField);
+      else if (c.key === 'created' || c.key === 'updated') val = fmt(i[c.key]);
+      else if (c.key === 'short_description')
+        val = `<span title="${(i.short_description || '').replace(/"/g, '&quot;')}">${i.short_description || '—'}</span>`;
+      else val = i[c.key] || '—';
+      return `<td>${val}</td>`;
+    }).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('') || `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--muted);padding:24px;">No incidents match</td></tr>`;
+
+  document.getElementById('table-' + key).innerHTML = `
+    <table class="data-table">
+      <thead><tr>${thHTML}</tr></thead>
+      <tbody>${trHTML}</tbody>
+    </table>`;
+
+  document.getElementById('badge-' + key).textContent = total + ' incidents';
+  document.getElementById('count-' + key).textContent = `Showing ${slice.length} of ${total}`;
+
+  // Pagination controls (hidden when all rows fit on one page)
+  const pgEl = document.getElementById('pages-' + key);
+  if (pages <= 1) { pgEl.innerHTML = ''; return; }
+
+  let pgHTML = `<button class="page-btn" onclick="onPage(${p - 1},'${key}')" ${p === 1 ? 'disabled' : ''}>‹</button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - p) <= 2) {
+      pgHTML += `<button class="page-btn ${i === p ? 'active' : ''}" onclick="onPage(${i},'${key}')">${i}</button>`;
+    } else if (Math.abs(i - p) === 3) {
+      pgHTML += `<span style="color:var(--muted);padding:0 4px;font-family:var(--mono);font-size:11px;">…</span>`;
+    }
+  }
+  pgHTML += `<button class="page-btn" onclick="onPage(${p + 1},'${key}')" ${p === pages ? 'disabled' : ''}>›</button>`;
+  pgEl.innerHTML = pgHTML;
+}
+
+// ── TABLE EVENT HANDLERS ──────────────────────────────────────────────────────
+// Thin wrappers called by inline event attributes on the toolbar and table
+// header elements. Each updates the relevant state field and re-renders.
+
+function onSearch(val, key) {
+  state.search = val;
+  state.page   = 1;
+  renderTable(key);
+}
+
+function onFilter(val, key) {
+  state.filterState = val;
+  state.page        = 1;
+  renderTable(key);
+}
+
+function onSort(col, key) {
+  if (state.sortCol === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortCol = col;
+    state.sortDir = 'asc';
+  }
+  state.page = 1;
+  renderTable(key);
+}
+
+function onPage(p, key) {
+  const total = getFilteredIncidents(key).length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (p < 1 || p > pages) return;
+  state.page = p;
+  renderTable(key);
+}
+
+// ── REPORTING DATA VIEW ───────────────────────────────────────────────────────
+// Aggregate cross-month view rendered when the user selects "Reporting Data".
+// Renders four Chart.js charts and a year-to-date summary table.
+function renderReporting() {
+  const view = document.getElementById('view-__reporting');
+  const keys = Object.keys(state.months).sort((a, b) => keyToDate(a) - keyToDate(b));
+
+  if (!keys.length) {
+    view.innerHTML = '<div class="state-empty"><div class="icon">⬡</div><p>No data loaded</p></div>';
+    return;
+  }
+
+  view.innerHTML = `
+    <div class="reporting-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Monthly Incident Volume</span></div>
+        <div class="panel-body"><div class="chart-wrap-tall"><canvas id="rpt-volume"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Avg Resolve Time (hours)</span></div>
+        <div class="panel-body"><div class="chart-wrap-tall"><canvas id="rpt-resolve"></canvas></div></div>
+      </div>
+    </div>
+    <div class="reporting-grid">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Resolved vs Closed by Month</span></div>
+        <div class="panel-body"><div class="chart-wrap-tall"><canvas id="rpt-states"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">YTD Summary</span></div>
+        <div class="panel-body" id="rpt-ytd"></div>
+      </div>
+    </div>`;
+
+  // Pre-compute series data for all charts
+  const labels   = keys.map(monthLabel);
+  const totals   = keys.map(k => state.months[k].length);
+  const resolved = keys.map(k => state.months[k].filter(i => (i.state || '').toLowerCase().includes('resolved')).length);
+  const closed   = keys.map(k => state.months[k].filter(i => (i.state || '').toLowerCase().includes('closed')).length);
+  const avgH     = keys.map(k => +calcAvgResolveHours(state.months[k]).toFixed(2));
+
+  const gridColour = getComputedStyle(document.documentElement)
+    .getPropertyValue('--border').trim() || '#e0e3ea';
+
+  // Monthly incident volume — bar chart
+  destroyChart('rpt-volume');
+  state.charts['rpt-volume'] = new Chart(document.getElementById('rpt-volume'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total Incidents',
+        data: totals,
+        backgroundColor: '#c47d0a',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColour }, ticks: { maxRotation: 45 } },
+        y: { grid: { color: gridColour }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Average resolution time — line chart
+  destroyChart('rpt-resolve');
+  state.charts['rpt-resolve'] = new Chart(document.getElementById('rpt-resolve'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Avg Resolve (hrs)',
+        data: avgH,
+        borderColor: '#1f9e68',
+        backgroundColor: 'rgba(31,158,104,0.08)',
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: '#1f9e68',
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColour }, ticks: { maxRotation: 45 } },
+        y: { grid: { color: gridColour }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Resolved vs Closed — stacked bar chart
+  destroyChart('rpt-states');
+  state.charts['rpt-states'] = new Chart(document.getElementById('rpt-states'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Resolved', data: resolved, backgroundColor: '#1f9e68', borderRadius: 2 },
+        { label: 'Closed',   data: closed,   backgroundColor: '#c47d0a', borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { boxWidth: 10, padding: 12 } } },
+      scales: {
+        x: { stacked: true, grid: { color: gridColour }, ticks: { maxRotation: 45 } },
+        y: { stacked: true, grid: { color: gridColour }, beginAtZero: true }
+      }
+    }
+  });
+
+  // YTD summary table
+  const ytdTotal    = totals.reduce((a, b) => a + b, 0);
+  const ytdResolved = resolved.reduce((a, b) => a + b, 0);
+  const ytdClosed   = closed.reduce((a, b) => a + b, 0);
+
+  const ytdRows = keys.map((k, i) => `
+    <tr>
+      <td>${monthLabel(k)}</td>
+      <td>${totals[i]}</td>
+      <td>${resolved[i]}</td>
+      <td>${closed[i]}</td>
+      <td>${avgH[i] ? avgH[i] + 'h' : '—'}</td>
+    </tr>`).join('');
+
+  document.getElementById('rpt-ytd').innerHTML = `
+    <table class="ytd-table">
+      <thead><tr>
+        <th>Month</th><th>Total</th><th>Resolved</th><th>Closed</th><th>Avg Resolve</th>
+      </tr></thead>
+      <tbody>
+        ${ytdRows}
+        <tr>
+          <td>TOTAL</td>
+          <td>${ytdTotal}</td>
+          <td>${ytdResolved}</td>
+          <td>${ytdClosed}</td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>`;
+}
+
+// ── COLUMN VISIBILITY TOGGLE ──────────────────────────────────────────────────
+// Populates and toggles the column-visibility dropdown menu. Toggling a column
+// mutates ALL_COLS directly so the change persists across table re-renders.
+
+/** Rebuild the column menu contents to reflect current visibility state. */
+function buildColMenu(key) {
+  const menu = document.getElementById('col-menu-' + key);
+  if (!menu) return;
+
+  const visible = ALL_COLS.filter(c =>  c.visible);
+  const hidden  = ALL_COLS.filter(c => !c.visible);
+
+  menu.innerHTML = `
+    <div style="padding:6px 12px 4px;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">Visible</div>
+    ${visible.map(c => `
+      <label class="col-toggle-item">
+        <input type="checkbox" checked onchange="toggleCol('${c.key}','${key}')">
+        ${c.label}
+      </label>`).join('')}
+    <hr class="col-toggle-divider">
+    <div style="padding:6px 12px 4px;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">Hidden</div>
+    ${hidden.map(c => `
+      <label class="col-toggle-item">
+        <input type="checkbox" onchange="toggleCol('${c.key}','${key}')">
+        ${c.label}
+      </label>`).join('')}
+  `;
+}
+
+/** Show or hide the column toggle dropdown; closes on outside click. */
+function toggleColMenu(key) {
+  const menu   = document.getElementById('col-menu-' + key);
+  const btn    = document.querySelector(`#col-toggle-wrap-${key} .col-toggle-btn`);
+  const isOpen = menu.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  if (isOpen) buildColMenu(key);
+
+  // Attach a one-shot outside-click listener to close the menu
+  if (isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function handler(e) {
+        if (!menu.contains(e.target) && !btn.contains(e.target)) {
+          menu.classList.remove('open');
+          btn.classList.remove('active');
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 0);
+  }
+}
+
+/** Toggle a single column's visibility and refresh the table. */
+function toggleCol(colKey, tabKey) {
+  const col = ALL_COLS.find(c => c.key === colKey);
+  if (col) col.visible = !col.visible;
+  buildColMenu(tabKey);
+  renderTable(tabKey);
+}
+
+// ── INITIALISE ────────────────────────────────────────────────────────────────
+// Entry point: begin discovery and loading of monthly data files.
+discoverAndLoad();
+</script>
+</body>
+</html>
